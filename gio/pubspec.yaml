@@ -1,7 +1,7 @@
 name: gio
 description: A powerful http request library.
 version: 0.0.1
-# homepage: https://www.example.com
+homepage: https://github.com/arcticfox1919/gio
 
 environment:
   sdk: '>=2.18.0 <3.0.0'

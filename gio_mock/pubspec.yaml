@@ -1,14 +1,13 @@
 name: gio_mock
-description: A starting point for Dart libraries or applications.
+description: For auxiliary gio library.
 version: 0.0.1
-# homepage: https://www.example.com
+homepage: https://github.com/arcticfox1919/gio
 
 environment:
   sdk: '>=2.18.0 <3.0.0'
 
 dependencies:
-  gio:
-    path: ../gio
+  gio: ^0.0.1
 #   path: ^1.8.0
 
 dev_dependencies:
