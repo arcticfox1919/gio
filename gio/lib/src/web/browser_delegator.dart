@@ -2,9 +2,9 @@
 import 'dart:async';
 import 'dart:html';
 import 'dart:typed_data';
-import 'package:gio/src/base_request.dart';
-import 'package:gio/src/http_delegator.dart';
-import 'package:gio/src/streamed_response.dart';
+import '../base_request.dart';
+import '../http_delegator.dart';
+import '../streamed_response.dart';
 
 import '../byte_stream.dart';
 import '../exception/exception.dart';

@@ -1,7 +1,7 @@
-
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:gio/gio.dart';
 import 'package:gio/src/gio_config.dart';
 import 'package:gio/src/gio_option.dart';
 import 'package:gio/src/http_delegator.dart';
@@ -64,10 +64,11 @@ class Gio implements Client {
     _option = option;
   }
 
-  Gio({String? baseUrl}) {
-    _option ??= GioOption(basePath: '');
-    basePath = baseUrl != null ? basePath : _option!.basePath;
-    _delegator = createDelegator(GioConfig(proxy: _option!.proxy));
+  Gio({String? baseUrl, GioContext? context}) {
+    _option ??= GioOption();
+    basePath = baseUrl ?? _option!.basePath;
+    _delegator = createDelegator(
+        GioConfig(proxy: _option?.proxy, context: context ?? _option?.context));
 
     var callServer =
         _option!.mockInterceptor ?? CallServerInterceptor(_delegator);
@@ -106,7 +107,6 @@ class Gio implements Client {
   Future<Response> headUri(Uri url, {Map<String, String>? headers}) =>
       _sendUnstreamed('HEAD', _mergeUri(url), headers);
 
-
   @override
   Future<Response> get(String path, {Map<String, String>? headers}) =>
       _sendUnstreamed('GET', _getUri(path), headers);
@@ -121,7 +121,8 @@ class Gio implements Client {
       _sendUnstreamed('POST', _getUri(path), headers, body, encoding);
 
   @override
-  Future<Response> postUri(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding})  =>
+  Future<Response> postUri(Uri url,
+          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _sendUnstreamed('POST', _mergeUri(url), headers, body, encoding);
 
   @override
@@ -130,7 +131,8 @@ class Gio implements Client {
       _sendUnstreamed('PUT', _getUri(path), headers, body, encoding);
 
   @override
-  Future<Response> putUri(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+  Future<Response> putUri(Uri url,
+          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _sendUnstreamed('PUT', _mergeUri(url), headers, body, encoding);
 
   @override
@@ -139,7 +141,8 @@ class Gio implements Client {
       _sendUnstreamed('PATCH', _getUri(path), headers, body, encoding);
 
   @override
-  Future<Response> patchUri(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+  Future<Response> patchUri(Uri url,
+          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _sendUnstreamed('PATCH', _mergeUri(url), headers, body, encoding);
 
   @override
@@ -148,7 +151,8 @@ class Gio implements Client {
       _sendUnstreamed('DELETE', _getUri(path), headers, body, encoding);
 
   @override
-  Future<Response> deleteUri(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
+  Future<Response> deleteUri(Uri url,
+          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _sendUnstreamed('DELETE', _mergeUri(url), headers, body, encoding);
 
   @override
@@ -159,31 +163,32 @@ class Gio implements Client {
   }
 
   @override
-  Future<String> readUri(Uri url, {Map<String, String>? headers}) async{
+  Future<String> readUri(Uri url, {Map<String, String>? headers}) async {
     final response = await getUri(url, headers: headers);
     _checkResponseSuccess(_mergeUri(url), response);
     return response.body;
   }
 
   @override
-  Future<Uint8List> readBytes(String path, {Map<String, String>? headers}) async {
+  Future<Uint8List> readBytes(String path,
+      {Map<String, String>? headers}) async {
     final response = await get(path, headers: headers);
     _checkResponseSuccess(_getUri(path), response);
     return response.bodyBytes;
   }
 
   @override
-  Future<Uint8List> readBytesUri(Uri url, {Map<String, String>? headers}) async{
+  Future<Uint8List> readBytesUri(Uri url,
+      {Map<String, String>? headers}) async {
     final response = await getUri(url, headers: headers);
     _checkResponseSuccess(_mergeUri(url), response);
     return response.bodyBytes;
   }
 
   /// Sends an HTTP request and asynchronously returns the response.
-  Future<StreamedResponse> send(BaseRequest request){
+  Future<StreamedResponse> send(BaseRequest request) {
     return _handleInterceptors(request);
   }
-
 
   /// Sends a non-streaming [Request] and returns a non-streaming [Response].
   Future<Response> _sendUnstreamed(
@@ -210,11 +215,11 @@ class Gio implements Client {
 
   Uri _getUri(String path) => Uri.parse("$basePath$path");
 
-  Uri _mergeUri(Uri url){
-    if(basePath.isNotEmpty){
+  Uri _mergeUri(Uri url) {
+    if (basePath.isNotEmpty) {
       var baseUri = Uri.parse(basePath);
-      return url.replace(scheme: baseUri.scheme,host: baseUri.host);
-    }else{
+      return url.replace(scheme: baseUri.scheme, host: baseUri.host);
+    } else {
       return url;
     }
   }

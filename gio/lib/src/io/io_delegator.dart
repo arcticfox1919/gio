@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:gio/src/base_request.dart';
 import 'package:gio/src/http_delegator.dart';
+import 'package:gio/src/io/io_context.dart';
 import 'package:gio/src/streamed_response.dart';
 
 import '../exception/client_socket_exception.dart';
@@ -18,15 +19,21 @@ HttpDelegator createHttpDelegator([GioConfig? config]) =>
 class IODelegator implements HttpDelegator {
   HttpClient? _inner;
 
-  IODelegator({HttpClient? client, GioConfig? config})
-      : _inner = client ?? HttpClient(){
-    if(config?.proxy != null){
-      _inner!.findProxy = (url){
+  IODelegator({HttpClient? client, GioConfig? config}) {
+    if (client != null) {
+      _inner = client;
+    } else if (config?.context != null && config!.context is IOContext) {
+      _inner = HttpClient(context: config.context?.context);
+    } else {
+      _inner = HttpClient();
+    }
+
+    if (config?.proxy != null) {
+      _inner!.findProxy = (url) {
         return 'PROXY ${config!.proxy!.host}:${config.proxy!.port}';
       };
     }
   }
-
 
   /// Closes the client.
   ///

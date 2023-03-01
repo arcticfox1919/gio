@@ -24,6 +24,7 @@ export 'src/base_response.dart';
 export 'src/response.dart';
 export 'src/streamed_response.dart';
 export 'src/exception/exception.dart';
+export 'src/gio_context.dart';
 
 
 /// Sends an HTTP HEAD request with the given headers to the given URL.
