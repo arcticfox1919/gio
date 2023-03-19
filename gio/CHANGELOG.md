@@ -1,3 +1,8 @@
+## 0.0.4
+- Add tutorial
+- Fix interceptor bug
+- Request to add queryParameters parameter option
+
 ## 0.0.3
 - lower the version number
 

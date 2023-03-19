@@ -1,15 +1,7 @@
-
-
 import 'dart:collection';
 
 import '../base_request.dart';
 import '../streamed_response.dart';
-
-
-class InterceptorEntry extends LinkedListEntry<InterceptorEntry> {
-  final Interceptor interceptor;
-  InterceptorEntry(this.interceptor);
-}
 
 
 abstract class Chain {

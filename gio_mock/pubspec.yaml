@@ -1,6 +1,6 @@
 name: gio_mock
 description: For auxiliary gio library.
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/arcticfox1919/gio
 
 environment:

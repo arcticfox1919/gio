@@ -20,13 +20,17 @@ abstract class Client {
   /// Sends an HTTP HEAD request with the given headers to the given URL.
   ///
   /// For more fine-grained control over the request, use [send] instead.
-  Future<Response> head(String url, {Map<String, String>? headers});
+  Future<Response> head(String url,
+      {Map<String, String>? headers, Map<String, dynamic>? queryParameters});
+
   Future<Response> headUri(Uri url, {Map<String, String>? headers});
 
   /// Sends an HTTP GET request with the given headers to the given URL.
   ///
   /// For more fine-grained control over the request, use [send] instead.
-  Future<Response> get(String url, {Map<String, String>? headers});
+  Future<Response> get(String url,
+      {Map<String, String>? headers, Map<String, dynamic>? queryParameters});
+
   Future<Response> getUri(Uri url, {Map<String, String>? headers});
 
   /// Sends an HTTP POST request with the given headers and body to the given
@@ -50,7 +54,10 @@ abstract class Client {
   ///
   /// For more fine-grained control over the request, use [send] instead.
   Future<Response> post(String url,
-      {Map<String, String>? headers, Object? body, Encoding? encoding});
+      {Map<String, String>? headers,
+      Object? body,
+      Encoding? encoding,
+      Map<String, dynamic>? queryParameters});
 
   Future<Response> postUri(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding});
@@ -74,7 +81,10 @@ abstract class Client {
   ///
   /// For more fine-grained control over the request, use [send] instead.
   Future<Response> put(String url,
-      {Map<String, String>? headers, Object? body, Encoding? encoding});
+      {Map<String, String>? headers,
+      Object? body,
+      Encoding? encoding,
+      Map<String, dynamic>? queryParameters});
 
   Future<Response> putUri(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding});
@@ -98,7 +108,10 @@ abstract class Client {
   ///
   /// For more fine-grained control over the request, use [send] instead.
   Future<Response> patch(String url,
-      {Map<String, String>? headers, Object? body, Encoding? encoding});
+      {Map<String, String>? headers,
+      Object? body,
+      Encoding? encoding,
+      Map<String, dynamic>? queryParameters});
 
   Future<Response> patchUri(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding});
@@ -107,7 +120,10 @@ abstract class Client {
   ///
   /// For more fine-grained control over the request, use [send] instead.
   Future<Response> delete(String url,
-      {Map<String, String>? headers, Object? body, Encoding? encoding});
+      {Map<String, String>? headers,
+      Object? body,
+      Encoding? encoding,
+      Map<String, dynamic>? queryParameters});
 
   Future<Response> deleteUri(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding});
@@ -120,7 +136,9 @@ abstract class Client {
   ///
   /// For more fine-grained control over the request and response, use [send] or
   /// [get] instead.
-  Future<String> read(String url, {Map<String, String>? headers});
+  Future<String> read(String url,
+      {Map<String, String>? headers, Map<String, dynamic>? queryParameters});
+
   Future<String> readUri(Uri url, {Map<String, String>? headers});
 
   /// Sends an HTTP GET request with the given headers to the given URL and
@@ -132,7 +150,9 @@ abstract class Client {
   ///
   /// For more fine-grained control over the request and response, use [send] or
   /// [get] instead.
-  Future<Uint8List> readBytes(String url, {Map<String, String>? headers});
+  Future<Uint8List> readBytes(String url,
+      {Map<String, String>? headers, Map<String, dynamic>? queryParameters});
+
   Future<Uint8List> readBytesUri(Uri url, {Map<String, String>? headers});
 
   /// Closes the client and cleans up any resources associated with it.

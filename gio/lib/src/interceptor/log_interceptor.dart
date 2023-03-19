@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 
 import '../base_request.dart';
@@ -74,44 +73,24 @@ class GioLogInterceptor {
   }
 
   void logPrint(String? message) {
-    final List<String> messageLines = message?.split('\n') ?? <String>['null'];
-    _debugPrintBuffer.addAll(messageLines);
-    if (!_debugPrintScheduled) {
-      _debugPrintTask();
-    }
+    _print(message);
   }
 }
 
-int _debugPrintedCharacters = 0;
-const int _kDebugPrintCapacity = 12 * 1024;
-const Duration _kDebugPrintPauseTime = Duration(seconds: 1);
-final Queue<String> _debugPrintBuffer = Queue<String>();
-final Stopwatch _debugPrintStopwatch = Stopwatch();
-Completer<void>? _debugPrintCompleter;
-bool _debugPrintScheduled = false;
-
-void _debugPrintTask() {
-  _debugPrintScheduled = false;
-  if (_debugPrintStopwatch.elapsed > _kDebugPrintPauseTime) {
-    _debugPrintStopwatch.stop();
-    _debugPrintStopwatch.reset();
-    _debugPrintedCharacters = 0;
+const _maxLen = 128;
+void _print(String? msg) {
+  String data = msg ?? 'null';
+  if (data.length <= _maxLen) {
+    print(data);
+    return;
   }
-  while (_debugPrintedCharacters < _kDebugPrintCapacity &&
-      _debugPrintBuffer.isNotEmpty) {
-    final String line = _debugPrintBuffer.removeFirst();
-    _debugPrintedCharacters +=
-        line.length; // TODO(ianh): Use the UTF-8 byte length instead
-    print(line);
-  }
-  if (_debugPrintBuffer.isNotEmpty) {
-    _debugPrintScheduled = true;
-    _debugPrintedCharacters = 0;
-    Timer(_kDebugPrintPauseTime, _debugPrintTask);
-    _debugPrintCompleter ??= Completer<void>();
-  } else {
-    _debugPrintStopwatch.start();
-    _debugPrintCompleter?.complete();
-    _debugPrintCompleter = null;
+  while (data.isNotEmpty) {
+    if (data.length > _maxLen) {
+      print(data.substring(0, _maxLen));
+      data = data.substring(_maxLen, data.length);
+    } else {
+      print(data);
+      data = '';
+    }
   }
 }

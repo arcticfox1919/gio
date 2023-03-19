@@ -22,7 +22,13 @@ class MockRequest extends Request {
         newContext[key] = value;
       });
     }
-    return MockRequest(method, url, context: newContext);
+    var mockRequest = MockRequest(method, url, context: newContext);
+    mockRequest.headers.addAll(this.headers);
+    mockRequest.bodyBytes = bodyBytes;
+    if(headers != null){
+      mockRequest.headers.addAll(headers);
+    }
+    return mockRequest;
   }
 
   Map<String, String> get params {

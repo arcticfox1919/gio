@@ -3,7 +3,7 @@ import '../exception/error.dart';
 import '../streamed_response.dart';
 import 'interceptor.dart';
 
-abstract class ConnectInterceptor {
+abstract class GioConnectInterceptor {
   Future<StreamedResponse> call(Chain chain) async {
     if (await checkConnectivity()) {
       return chain.proceed(chain.request);
@@ -14,7 +14,7 @@ abstract class ConnectInterceptor {
   Future<bool> checkConnectivity();
 }
 
-class GioConnectInterceptor extends ConnectInterceptor {
+class DefaultConnectInterceptor extends GioConnectInterceptor {
   @override
   Future<bool> checkConnectivity() => Future.value(true);
 }

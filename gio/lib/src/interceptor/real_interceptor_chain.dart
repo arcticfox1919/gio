@@ -6,7 +6,7 @@ import '../streamed_response.dart';
 import 'interceptor.dart';
 
 class RealInterceptorChain implements Chain {
-  final HasNextIterator<InterceptorEntry> iterator;
+  final HasNextIterator<Interceptor> iterator;
 
   @override
   final BaseRequest request;
@@ -16,7 +16,7 @@ class RealInterceptorChain implements Chain {
   @override
   Future<StreamedResponse> proceed(BaseRequest request) {
     if (iterator.hasNext) {
-      var curInterceptor = iterator.next().interceptor;
+      var curInterceptor = iterator.next();
       return curInterceptor(RealInterceptorChain(iterator, request));
     }
     throw InterceptorError('RealInterceptorChain','Interceptor out of bounds');

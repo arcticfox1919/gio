@@ -1,6 +1,6 @@
 name: gio
 description: A powerful http request library.
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/arcticfox1919/gio
 
 environment:
@@ -15,3 +15,4 @@ dependencies:
 dev_dependencies:
   lints: ^2.0.0
   test: ^1.16.0
+  gio_mock: ^0.0.3

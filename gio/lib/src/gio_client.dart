@@ -3,28 +3,19 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:gio/gio.dart';
 import 'package:gio/src/gio_config.dart';
-import 'package:gio/src/gio_option.dart';
 import 'package:gio/src/http_delegator.dart';
 import 'package:gio/src/interceptor/call_server_interceptor.dart';
-import 'package:gio/src/interceptor/connect_interceptor.dart';
-import 'package:gio/src/interceptor/log_interceptor.dart';
 
 import 'package:meta/meta.dart';
-import 'base_request.dart';
 import 'client.dart';
-import 'exception/exception.dart';
-import 'interceptor/interceptor.dart';
 import 'interceptor/real_interceptor_chain.dart';
-import 'request.dart';
-import 'response.dart';
-import 'streamed_response.dart';
 
-Map<String, LinkedList<InterceptorEntry>>? _groupTable;
+Map<String, List<Interceptor>>? _groupTable;
 
 GroupInterceptor group(String groupName) {
   _groupTable ??= {};
   if (!_groupTable!.containsKey(groupName)) {
-    _groupTable![groupName] = LinkedList<InterceptorEntry>();
+    _groupTable![groupName] = <Interceptor>[];
   }
   return GroupInterceptor._(groupName);
 }
@@ -36,7 +27,7 @@ class GroupInterceptor {
 
   void addInterceptor(Interceptor interceptor) {
     var interceptors = _groupTable![name];
-    interceptors!.add(InterceptorEntry(interceptor));
+    interceptors!.add(interceptor);
   }
 
   void clear() {
@@ -46,7 +37,7 @@ class GroupInterceptor {
   set interceptors(List<Interceptor> interceptors) {
     var intercept = _groupTable![name];
     for (var e in interceptors) {
-      intercept!.add(InterceptorEntry(e));
+      intercept!.add(e);
     }
   }
 }
@@ -54,10 +45,10 @@ class GroupInterceptor {
 class Gio implements Client {
   static GioOption? _option;
 
-  final _globalInterceptors = LinkedList<InterceptorEntry>();
-  final _localInterceptors = LinkedList<InterceptorEntry>();
+  final _globalInterceptors = <Interceptor>[];
+  final _localInterceptors = <Interceptor>[];
   late final HttpDelegator _delegator;
-  late final List<InterceptorEntry> _gioInterceptors;
+  late final List<Interceptor> _gioInterceptors;
   late final String basePath;
 
   static set option(GioOption option) {
@@ -74,21 +65,19 @@ class Gio implements Client {
         _option!.mockInterceptor ?? CallServerInterceptor(_delegator);
     if (_option!.enableLog) {
       _gioInterceptors = [
-        InterceptorEntry(_option!.logInterceptor ?? GioLogInterceptor()),
-        InterceptorEntry(
-            _option!.connectInterceptor ?? GioConnectInterceptor()),
-        InterceptorEntry(callServer)
+        _option!.logInterceptor ?? GioLogInterceptor(),
+        _option!.connectInterceptor ?? DefaultConnectInterceptor(),
+        callServer
       ];
     } else {
       _gioInterceptors = [
-        InterceptorEntry(
-            _option!.connectInterceptor ?? GioConnectInterceptor()),
-        InterceptorEntry(callServer)
+        _option!.connectInterceptor ?? DefaultConnectInterceptor(),
+        callServer
       ];
     }
 
     for (var e in _option!.globalInterceptors) {
-      _globalInterceptors.add(InterceptorEntry(e));
+      _globalInterceptors.add(e);
     }
   }
 
@@ -96,20 +85,30 @@ class Gio implements Client {
   HttpDelegator createDelegator(GioConfig config) => HttpDelegator(config);
 
   void addInterceptor(Interceptor interceptor) {
-    _localInterceptors.add(InterceptorEntry(interceptor));
+    _localInterceptors.add(interceptor);
+  }
+
+  void removeInterceptor(Interceptor interceptor) {
+    _localInterceptors.remove(interceptor);
   }
 
   @override
-  Future<Response> head(String path, {Map<String, String>? headers}) =>
-      _sendUnstreamed('HEAD', _getUri(path), headers);
+  Future<Response> head(String path,
+          {Map<String, String>? headers,
+          Map<String, dynamic>? queryParameters}) =>
+      headUri(Uri.parse(path).replace(queryParameters: queryParameters),
+          headers: headers);
 
   @override
   Future<Response> headUri(Uri url, {Map<String, String>? headers}) =>
       _sendUnstreamed('HEAD', _mergeUri(url), headers);
 
   @override
-  Future<Response> get(String path, {Map<String, String>? headers}) =>
-      _sendUnstreamed('GET', _getUri(path), headers);
+  Future<Response> get(String path,
+          {Map<String, String>? headers,
+          Map<String, dynamic>? queryParameters}) =>
+      getUri(Uri.parse(path).replace(queryParameters: queryParameters),
+          headers: headers);
 
   @override
   Future<Response> getUri(Uri url, {Map<String, String>? headers}) =>
@@ -117,8 +116,12 @@ class Gio implements Client {
 
   @override
   Future<Response> post(String path,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('POST', _getUri(path), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Encoding? encoding,
+          Map<String, dynamic>? queryParameters}) =>
+      postUri(Uri.parse(path).replace(queryParameters: queryParameters),
+          headers: headers, body: body, encoding: encoding);
 
   @override
   Future<Response> postUri(Uri url,
@@ -127,8 +130,12 @@ class Gio implements Client {
 
   @override
   Future<Response> put(String path,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('PUT', _getUri(path), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Encoding? encoding,
+          Map<String, dynamic>? queryParameters}) =>
+      putUri(Uri.parse(path).replace(queryParameters: queryParameters),
+          headers: headers, body: body, encoding: encoding);
 
   @override
   Future<Response> putUri(Uri url,
@@ -137,8 +144,12 @@ class Gio implements Client {
 
   @override
   Future<Response> patch(String path,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('PATCH', _getUri(path), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Encoding? encoding,
+          Map<String, dynamic>? queryParameters}) =>
+      patchUri(Uri.parse(path).replace(queryParameters: queryParameters),
+          headers: headers, body: body, encoding: encoding);
 
   @override
   Future<Response> patchUri(Uri url,
@@ -147,8 +158,12 @@ class Gio implements Client {
 
   @override
   Future<Response> delete(String path,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('DELETE', _getUri(path), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Encoding? encoding,
+          Map<String, dynamic>? queryParameters}) =>
+      deleteUri(Uri.parse(path).replace(queryParameters: queryParameters),
+          headers: headers, body: body, encoding: encoding);
 
   @override
   Future<Response> deleteUri(Uri url,
@@ -156,8 +171,11 @@ class Gio implements Client {
       _sendUnstreamed('DELETE', _mergeUri(url), headers, body, encoding);
 
   @override
-  Future<String> read(String path, {Map<String, String>? headers}) async {
-    final response = await get(path, headers: headers);
+  Future<String> read(String path,
+      {Map<String, String>? headers,
+      Map<String, dynamic>? queryParameters}) async {
+    final response =
+        await get(path, headers: headers, queryParameters: queryParameters);
     _checkResponseSuccess(_getUri(path), response);
     return response.body;
   }
@@ -171,8 +189,10 @@ class Gio implements Client {
 
   @override
   Future<Uint8List> readBytes(String path,
-      {Map<String, String>? headers}) async {
-    final response = await get(path, headers: headers);
+      {Map<String, String>? headers,
+      Map<String, dynamic>? queryParameters}) async {
+    final response =
+        await get(path, headers: headers, queryParameters: queryParameters);
     _checkResponseSuccess(_getUri(path), response);
     return response.bodyBytes;
   }
@@ -225,7 +245,7 @@ class Gio implements Client {
   }
 
   Future<StreamedResponse> _handleInterceptors(BaseRequest request) {
-    var intercept = LinkedList<InterceptorEntry>();
+    var intercept = <Interceptor>[];
     if (_localInterceptors.isNotEmpty) {
       intercept.addAll(_localInterceptors);
     }
@@ -258,12 +278,12 @@ class GioGroup extends Gio {
 
   GioGroup(this.name) {
     assert(_groupTable != null);
-    _groupTable![name] = LinkedList<InterceptorEntry>();
+    _groupTable![name] = <Interceptor>[];
   }
 
   @override
   Future<StreamedResponse> _handleInterceptors(BaseRequest request) {
-    var intercept = LinkedList<InterceptorEntry>();
+    var intercept = <Interceptor>[];
     if (_localInterceptors.isNotEmpty) {
       intercept.addAll(_localInterceptors);
     }

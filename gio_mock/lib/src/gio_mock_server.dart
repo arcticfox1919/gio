@@ -34,7 +34,13 @@ class GioMockServer implements GioMockInterceptor{
   }
 
   MockRequest _convert(BaseRequest request){
-    return MockRequest(request.method, request.url);
+    if(request is Request){
+      var mock = MockRequest(request.method, request.url);
+      mock.headers.addAll(request.headers);
+      mock.bodyBytes = request.bodyBytes;
+      return mock;
+    }
+    throw Exception("Only `Request` type requests are supported for now");
   }
 
 }
