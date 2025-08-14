@@ -76,9 +76,7 @@ class Auth{
         return ResponseX.badRequest('Error: invalid_authorization_header');
       case AuthorizationParserExceptionReason.missing:
         return ResponseX.unauthorized('Unauthorized');
-      default:
-        return ResponseX.serverError('Internal Server Error');
-    }
+      }
   }
 }
 

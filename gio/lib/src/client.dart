@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import '../gio.dart' as gio;
 import 'exception/exception.dart';
-import 'response.dart';
+import 'package:http/http.dart' show Response;
 
 /// The interface for HTTP clients that take care of maintaining persistent
 /// connections across multiple requests to the same server.
@@ -16,7 +16,7 @@ import 'response.dart';
 /// extend [BaseClient] rather than [Client]. In most cases, you can wrap
 /// another instance of [Client] and add functionality on top of that. This
 /// allows all classes implementing [Client] to be mutually composable.
-abstract class Client {
+abstract interface class Client {
   /// Sends an HTTP HEAD request with the given headers to the given URL.
   ///
   /// For more fine-grained control over the request, use [send] instead.

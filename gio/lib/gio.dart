@@ -1,13 +1,13 @@
 /// Support for doing something awesome.
 ///
 /// More dartdocs go here.
-library gio;
+library;
 
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:gio/src/gio_client.dart';
-import 'package:gio/src/response.dart';
+import 'package:http/http.dart' show Response;
 
 import 'src/client.dart';
 
@@ -17,13 +17,18 @@ export 'src/interceptor/interceptor.dart';
 export 'src/interceptor/connect_interceptor.dart';
 export 'src/interceptor/log_interceptor.dart';
 export 'src/interceptor/mock_interceptor.dart';
-export 'src/base_request.dart';
-export 'src/request.dart';
-export 'src/streamed_request.dart';
-export 'src/multipart_request.dart';
-export 'src/base_response.dart';
-export 'src/response.dart';
-export 'src/streamed_response.dart';
+// Re-export core types from package:http to avoid duplicating local implementations
+export 'package:http/http.dart'
+    show
+        BaseRequest,
+        Request,
+        StreamedRequest,
+        MultipartRequest,
+        MultipartFile,
+        BaseResponse,
+        Response,
+        StreamedResponse,
+        ByteStream;
 export 'src/exception/exception.dart';
 export 'src/gio_context.dart';
 export 'src/exception/error.dart';

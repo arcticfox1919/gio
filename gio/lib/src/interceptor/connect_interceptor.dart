@@ -1,10 +1,9 @@
+import 'package:http/http.dart' as http;
 import '../exception/error.dart';
-
-import '../streamed_response.dart';
 import 'interceptor.dart';
 
 abstract class GioConnectInterceptor {
-  Future<StreamedResponse> call(Chain chain) async {
+  Future<http.StreamedResponse> call(Chain chain) async {
     if (await checkConnectivity()) {
       return chain.proceed(chain.request);
     }

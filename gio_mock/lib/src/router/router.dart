@@ -20,19 +20,19 @@ final _removeBody = createMiddleware(responseHandler: (r) {
   return r.change(body: <int>[]);
 });
 
-class Router{
-
+mixin Router {
   /// The [notFoundHandler] will be invoked for requests where no matching route
   /// was found. By default, a simple [Response.notFound] will be used instead.
   Handler _notFoundHandler = _defaultNotFound;
 
   final Map<String, _Node> _trees = {};
 
-  set notFoundHandler(Handler notFound){
+  set notFoundHandler(Handler notFound) {
     _notFoundHandler = notFound;
   }
 
-  void add(String method, String route, Function handler,{Middleware? middleware}) {
+  void add(String method, String route, Function handler,
+      {Middleware? middleware}) {
     if (!isHttpMethod(method)) {
       throw ArgumentError.value(
           method, 'method', 'expected a valid HTTP method');
@@ -49,17 +49,18 @@ class Router{
       // wrong, thus, we add a default implementation that discards the body.
       _addRoute('HEAD', route, handler, middleware: _removeBody);
     }
-    _addRoute(method, route, handler,middleware:middleware);
+    _addRoute(method, route, handler, middleware: middleware);
   }
 
-  void _addRoute(String method, String path, Function handler,{Middleware? middleware}){
+  void _addRoute(String method, String path, Function handler,
+      {Middleware? middleware}) {
     var root = _trees[method];
-    if(root == null){
+    if (root == null) {
       root = _Node.empty();
       _trees[method] = root;
     }
 
-    _Node.addRoute(root, path, handler,middleware);
+    _Node.addRoute(root, path, handler, middleware);
   }
 
   _NodeResult _getRoute(String method, String path) {
@@ -68,34 +69,32 @@ class Router{
     Function? handle;
     Middleware? middleware;
 
-    if(root != null){
+    if (root != null) {
       var r = _Node.getValue(root, path);
       handle = r[0] as Function?;
       params = r[1] as Map<String, String>?;
       // var tsr = r[2] as bool;
       middleware = r[3] as Middleware?;
 
-      return _NodeResult(root, params,handle,middleware);
+      return _NodeResult(root, params, handle, middleware);
     }
-    return _NodeResult(root, params,handle,middleware);
+    return _NodeResult(root, params, handle, middleware);
   }
 
-  RouterGroup group(String prefix){
+  RouterGroup group(String prefix) {
     if (!prefix.startsWith('/')) {
-      throw ArgumentError.value(
-          prefix, 'prefix', 'must start with a slash');
+      throw ArgumentError.value(prefix, 'prefix', 'must start with a slash');
     }
-    return RouterGroup(prefix,this);
+    return RouterGroup(prefix, this);
   }
-
 
   /// Route incoming requests to registered handlers.
   ///
   /// This method allows a Router instance to be a [Handler].
   FutureOr<Response> call(MockRequest request) async {
-    var nodeResult = _getRoute(request.method,request.url.path);
+    var nodeResult = _getRoute(request.method, request.url.path);
 
-    if(nodeResult._node != null){
+    if (nodeResult._node != null) {
       var params = nodeResult._params;
       var middleware = nodeResult._middleware;
       request = request.change(context: {'arowana/params': params});
@@ -108,7 +107,7 @@ class Router{
           return await handle.call(request);
         }
 
-        if(handle != null && params != null){
+        if (handle != null && params != null) {
           return await Function.apply(handle, [
             request,
             ...params.values,
@@ -157,18 +156,18 @@ class Router{
   static final Response routeNotFound = _RouteNotFoundResponse();
 }
 
-class RouterGroup{
+class RouterGroup {
   String prefix;
   Router parent;
   Middleware? middleware;
 
-  RouterGroup(this.prefix,this.parent);
+  RouterGroup(this.prefix, this.parent);
 
   void add(String method, String route, Function handler) {
-    parent.add(method, prefix+route, handler,middleware: middleware);
+    parent.add(method, prefix + route, handler, middleware: middleware);
   }
 
-  void use(Middleware middleware){
+  void use(Middleware middleware) {
     this.middleware = middleware;
   }
 
@@ -182,9 +181,11 @@ class RouterGroup{
 
   void delete(String route, Function handler) => add('DELETE', route, handler);
 
-  void connect(String route, Function handler) => add('CONNECT', route, handler);
+  void connect(String route, Function handler) =>
+      add('CONNECT', route, handler);
 
-  void options(String route, Function handler) => add('OPTIONS', route, handler);
+  void options(String route, Function handler) =>
+      add('OPTIONS', route, handler);
 
   void trace(String route, Function handler) => add('TRACE', route, handler);
 

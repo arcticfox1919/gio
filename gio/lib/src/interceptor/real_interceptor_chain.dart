@@ -1,25 +1,21 @@
-import 'dart:collection';
-
-import '../base_request.dart';
+import 'package:http/http.dart' as http;
 import '../exception/error.dart';
-import '../streamed_response.dart';
 import 'interceptor.dart';
 
 class RealInterceptorChain implements Chain {
-  final HasNextIterator<Interceptor> iterator;
+  final Iterator<Interceptor> iterator;
 
   @override
-  final BaseRequest request;
+  final http.BaseRequest request;
 
   RealInterceptorChain(this.iterator, this.request);
 
   @override
-  Future<StreamedResponse> proceed(BaseRequest request) {
-    if (iterator.hasNext) {
-      var curInterceptor = iterator.next();
+  Future<http.StreamedResponse> proceed(http.BaseRequest request) {
+    if (iterator.moveNext()) {
+      final curInterceptor = iterator.current;
       return curInterceptor(RealInterceptorChain(iterator, request));
     }
-    throw InterceptorError('RealInterceptorChain','Interceptor out of bounds');
+    throw InterceptorError('RealInterceptorChain', 'Interceptor out of bounds');
   }
 }
-

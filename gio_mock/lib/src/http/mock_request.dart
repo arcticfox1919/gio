@@ -8,8 +8,8 @@ final _emptyParams = UnmodifiableMapView(<String, String>{});
 class MockRequest extends Request {
   final Map<String, Object?> context;
 
-  MockRequest(String method, Uri url,{Map<String, Object?>? context}) :
-        context =context ?? {}, super(method, url);
+  MockRequest(super.method, super.url,{Map<String, Object?>? context}) :
+        context =context ?? {};
 
   MockRequest change({
     Map<String, String>? headers,

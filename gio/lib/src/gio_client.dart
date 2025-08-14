@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:gio/gio.dart';
@@ -58,21 +57,29 @@ class Gio implements Client {
   Gio({String? baseUrl, GioContext? context}) {
     _option ??= GioOption();
     basePath = baseUrl ?? _option!.basePath;
-    _delegator = createDelegator(
-        GioConfig(proxy: _option?.proxy, context: context ?? _option?.context));
+    final cfg =
+        GioConfig(proxy: _option?.proxy, context: context ?? _option?.context);
+    if (_option!.delegatorFactory != null) {
+      _delegator = _option!.delegatorFactory!(cfg);
+    } else {
+      _delegator = createDelegator(cfg);
+    }
 
-    var callServer =
+    final callServer =
         _option!.mockInterceptor ?? CallServerInterceptor(_delegator);
-    if (_option!.enableLog) {
+    final logger = _option!.logInterceptor ??
+        (_option!.enableLog ? GioLogInterceptor() : null);
+
+    if (logger != null) {
       _gioInterceptors = [
-        _option!.logInterceptor ?? GioLogInterceptor(),
-        _option!.connectInterceptor ?? DefaultConnectInterceptor(),
-        callServer
+        logger.call,
+        (_option!.connectInterceptor ?? DefaultConnectInterceptor()).call,
+        callServer.call
       ];
     } else {
       _gioInterceptors = [
-        _option!.connectInterceptor ?? DefaultConnectInterceptor(),
-        callServer
+        (_option!.connectInterceptor ?? DefaultConnectInterceptor()).call,
+        callServer.call
       ];
     }
 
@@ -252,8 +259,7 @@ class Gio implements Client {
     intercept.addAll(_globalInterceptors);
     intercept.addAll(_gioInterceptors);
 
-    final chain =
-        RealInterceptorChain(HasNextIterator(intercept.iterator), request);
+    final chain = RealInterceptorChain(intercept.iterator, request);
     return chain.proceed(request);
   }
 
@@ -296,8 +302,7 @@ class GioGroup extends Gio {
     intercept.addAll(_globalInterceptors);
     intercept.addAll(_gioInterceptors);
 
-    final chain =
-        RealInterceptorChain(HasNextIterator(intercept.iterator), request);
+    final chain = RealInterceptorChain(intercept.iterator, request);
     return chain.proceed(request);
   }
 }
