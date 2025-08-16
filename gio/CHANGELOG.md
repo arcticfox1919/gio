@@ -1,3 +1,8 @@
+
+## 0.1.0
+- Upgrade dart to the minimum supported version 3.4
+- Remove the http protocol implementation and use package:http
+
 ## 0.0.4
 - Add tutorial
 - Fix interceptor bug

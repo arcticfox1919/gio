@@ -1,3 +1,6 @@
+## 0.1.0
+- Upgrade dart to the minimum supported version 3.4
+
 ## 0.0.3
 - Fix response bug
 

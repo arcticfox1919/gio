@@ -1,93 +1,123 @@
 # Gio
 
-This is a powerful http request library from Dart. It has a chain call interceptor, through which we can implement many functions.
+**A powerful HTTP client library for Dart, built on top of `package:http`.**
 
-For example, it provides an interceptor to mock the back-end response. This allows us to quickly build and debug the UI without relying on the progress of the back-end programmer.
+Gio extends the standard `http` package with advanced features like interceptors, request/response logging, and seamless API mocking capabilities. Designed for modern Dart applications, Gio simplifies HTTP communication while providing enterprise-grade flexibility.
 
-## Usage
+## Features
 
-### Quick Start
+- **Built on `package:http`** - Reliable foundation with familiar APIs
+- **Interceptor Chain** - Transform requests/responses with ease
+- **Smart Logging** - Stream-safe logging with configurable output
+- **API Mocking** - Build UIs without backend dependencies
+- **Global Configuration** - Base URLs, headers, and settings
+- **Lightweight** - Minimal overhead, maximum functionality
+- **Simple API** - Get started in minutes
+
+## Quick Start
+
+Add Gio to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   gio: latest
 ```
 
-```dart
-import 'dart:convert';
+### Basic Usage
 
+```dart
 import 'package:gio/gio.dart' as gio;
 
 void main() async {
-  var resp =
-      await gio.get("http://worldtimeapi.org/api/timezone/Asia/Shanghai");
-  print(resp.body);
+  // Simple GET request
+  var response = await gio.get("https://api.example.com/users");
+  print(response.body);
 
-  /// GET http://example.com?a=1&b=2
-  resp = await gio.get("http://example.com", queryParameters: {"a": "1", "b": "2"});
-  print(resp.request?.url);
+  // GET with query parameters
+  response = await gio.get(
+    "https://api.example.com/search", 
+    queryParameters: {"q": "dart", "limit": "10"}
+  );
 
+  // POST with form data
+  response = await gio.post(
+    "https://api.example.com/login",
+    headers: {"content-type": "application/x-www-form-urlencoded"},
+    body: {"username": "john", "password": "secret"}
+  );
 
-  /// POST Form Data
-  var data = {"username": "Bob", "passwd": "123456"};
-  var header = {"content-type":"application/x-www-form-urlencoded"};
-  resp = await gio.post("http://example.com", headers: header,body: data);
-  print(resp.body);
-
-  /// POST JSON Data
-  /// Note: if JSON data is passed, 
-  /// then body should be a string type
-  var data2 = {"name": "Bob", "age": "22"};
-  var header2 = {"content-type":"application/json"};
-  resp = await gio.post("http://example.com", headers: header,body: jsonEncode(data));
-  print(resp.body);
+  // POST with JSON data
+  response = await gio.post(
+    "https://api.example.com/users",
+    headers: {"content-type": "application/json"},
+    body: jsonEncode({"name": "John Doe", "age": 30})
+  );
 }
 ```
 
-You can also use Gio like the following, where you can reuse this connection before it is closed:
+### Reusable Client
+
+For multiple requests, create a reusable client:
+
 ```dart
 import 'package:gio/gio.dart';
 
-void main() async{
-  Gio gio = Gio();
-  try{
-    var resp = await gio.get("http://worldtimeapi.org/api/timezone/Asia/Shanghai");
-    print(resp.body);
-  }finally{
-    gio.close();
+void main() async {
+  final client = Gio();
+  try {
+    final response = await client.get("https://api.example.com/data");
+    print(response.body);
+  } finally {
+    client.close(); // Always clean up resources
   }
 }
 ```
 
+## Configuration
 
-### Global Configuration
+### Global Settings
 
-We can use `GioOption` to set a global base url:
+Configure base URL, logging, and other global options:
+
 ```dart
 import 'package:gio/gio.dart' as gio;
 
-void main() async{
+void main() async {
+  // Configure global options
   gio.Gio.option = gio.GioOption(
-      basePath: 'https://giomock.io',
-      enableLog: true
+    basePath: 'https://api.example.com',
+    enableLog: true,
+    headers: {'User-Agent': 'MyApp/1.0'},
   );
 
-  // equivalent to https://giomock.io/greet
-  var resp = await gio.get("/greet", queryParameters: {'name': 'Bob'});
-  print(resp.body);
+  // Requests now use the base path
+  final response = await gio.get("/users/123"); // → https://api.example.com/users/123
+  print(response.body);
 }
 ```
-Set `enableLog` to `true` to enable the global log for easy tracking of requests.
 
-Note here that if you have `basePath` configured in `GioOption` but you are not applying this `basePath` in some request, then you need to override this parameter in the request as follows:
+### Custom Logging
+
+Enable structured logging with `package:logging`:
 
 ```dart
+import 'package:logging/logging.dart';
 import 'package:gio/gio.dart';
 
 void main() async {
+  // Set up logging
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+    // Persist to file, send to analytics, etc.
+  });
+
   Gio.option = GioOption(
-      basePath: 'https://giomock.io',
-      enableLog: true
+    logInterceptor: GioLogInterceptor(
+      useLogging: true,
+      loggerName: 'gio',
+      maxLogBodyBytes: 1024,
+    ),
   );
 
   // Set the `baseUrl` of `Gio` to an empty string
@@ -405,3 +435,6 @@ We need to register routes in the `entryPoint` method, you can use methods such 
 
 The second parameter to these methods is a handler for the route response, where you can process the request parameters and return the response.
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
