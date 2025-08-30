@@ -11,6 +11,7 @@ Gio extends the standard `http` package with advanced features like interceptors
 - **Smart Logging** - Stream-safe logging with configurable output
 - **API Mocking** - Build UIs without backend dependencies
 - **Global Configuration** - Base URLs, headers, and settings
+- **Independent Clients** - Multiple clients with separate configurations
 - **Lightweight** - Minimal overhead, maximum functionality
 - **Simple API** - Get started in minutes
 
@@ -72,6 +73,51 @@ void main() async {
   }
 }
 ```
+
+### Independent Client Configuration
+
+Use `Gio.withOption()` to create a client with custom configuration independent of global settings:
+
+```dart
+import 'package:gio/gio.dart';
+
+void main() async {
+  // Create client with custom configuration
+  final customClient = Gio.withOption(GioOption(
+    basePath: 'https://api.custom.com',
+    enableLog: false,
+    headers: {'Authorization': 'Bearer token123'},
+    connectTimeout: Duration(seconds: 10),
+  ));
+
+  // Create another client with different configuration
+  final debugClient = Gio.withOption(GioOption(
+    basePath: 'https://debug.api.com',
+    enableLog: true,
+    logInterceptor: GioLogInterceptor(
+      useLogging: true,
+      maxLogBodyBytes: 2048,
+    ),
+  ));
+
+  try {
+    // Each client uses its own configuration
+    final response1 = await customClient.get("/users");
+    final response2 = await debugClient.get("/debug/status");
+    
+    print("Custom API: ${response1.body}");
+    print("Debug API: ${response2.body}");
+  } finally {
+    customClient.close();
+    debugClient.close();
+  }
+}
+```
+
+**Benefits of `Gio.withOption()`:**
+- **Independent Configuration**: Each client maintains its own settings
+- **No Global Interference**: Changes don't affect global `Gio.option`
+- **Modular Design**: Different modules can have different HTTP configurations
 
 ## Configuration
 
