@@ -32,6 +32,8 @@ export 'package:http/http.dart'
 export 'src/exception/exception.dart';
 export 'src/gio_context.dart';
 export 'src/exception/error.dart';
+// Export transfer functionality as extension methods
+export 'src/transfer/gio_transfer_methods.dart';
 
 /// Sends an HTTP HEAD request with the given headers to the given URL.
 ///
