@@ -53,19 +53,24 @@ typedef DataChunkCallback = void Function(Uint8List chunk);
 extension GioTransferMethods on Gio {
   // === Upload Methods ===
 
-  /// Upload a file with progress tracking
+  /// Upload a file using multipart/form-data format with progress tracking
   ///
-  /// Example:
-  /// ```dart
-  /// final gio = Gio();
-  /// await gio.uploadFile(
-  ///   File('/path/to/file.jpg'),
-  ///   'https://api.example.com/upload',
-  ///   onProgress: (progress) {
-  ///     print('Upload: ${progress.percentage! * 100}%');
-  ///   },
-  /// );
-  /// ```
+  /// This method creates a standard HTTP multipart/form-data request, which is
+  /// the most widely supported format for file uploads on web servers. The file
+  /// is uploaded as a multipart form field, allowing you to include additional
+  /// form fields alongside the file data.
+  ///
+  /// **Parameters:**
+  /// - [file]: The file to upload from local filesystem
+  /// - [url]: Target upload endpoint URL
+  /// - [fieldName]: Form field name for the file (default: 'file')
+  /// - [onProgress]: Optional callback for upload progress updates
+  /// - [headers]: Additional HTTP headers to include in request
+  /// - [fields]: Additional form fields to send with the file
+  ///
+  /// **Returns:** HTTP response from the server
+  ///
+  /// **Note:** For raw binary uploads without multipart encoding, use [uploadBytes] instead.
   Future<http.Response> uploadFile(
     File file,
     String url, {
@@ -107,18 +112,22 @@ extension GioTransferMethods on Gio {
     return http.Response.fromStream(streamedResponse);
   }
 
-  /// Upload raw bytes with progress tracking
+  /// Upload raw binary data using streaming request with progress tracking
   ///
-  /// Example:
-  /// ```dart
-  /// final gio = Gio();
-  /// await gio.uploadBytes(
-  ///   imageBytes,
-  ///   'https://api.example.com/upload',
-  ///   contentType: 'image/png',
-  ///   onProgress: (progress) => print('Uploaded: ${progress.current} bytes'),
-  /// );
-  /// ```
+  /// This method uploads binary data directly as the HTTP request body without
+  /// any multipart encoding. The data is sent as-is in chunks, providing maximum
+  /// transfer efficiency with zero protocol overhead.
+  ///
+  /// **Parameters:**
+  /// - [data]: Binary data to upload as Uint8List
+  /// - [url]: Target upload endpoint URL
+  /// - [onProgress]: Optional callback for upload progress updates
+  /// - [headers]: Additional HTTP headers to include
+  /// - [contentType]: MIME type of the data (e.g., 'image/jpeg', 'application/pdf')
+  ///
+  /// **Returns:** HTTP response from the server
+  ///
+  /// **Note:** For standard file uploads compatible with web forms, use [uploadFile] instead.
   Future<http.Response> uploadBytes(
     Uint8List data,
     String url, {
@@ -154,18 +163,24 @@ extension GioTransferMethods on Gio {
     return http.Response.fromStream(streamedResponse);
   }
 
-  /// Upload from a stream with progress tracking
+  /// Upload data from a stream source with progress tracking
   ///
-  /// Example:
-  /// ```dart
-  /// final gio = Gio();
-  /// await gio.uploadStream(
-  ///   dataStream,
-  ///   'https://api.example.com/upload',
-  ///   1024 * 1024, // 1MB content length
-  ///   onProgress: (progress) => print('Progress: ${progress.percentage}'),
-  /// );
-  /// ```
+  /// This method accepts a pre-existing data stream and uploads it with progress
+  /// monitoring. It's designed for scenarios where data is already available as
+  /// a stream or needs to be generated/transformed on-the-fly during upload.
+  ///
+  /// **Parameters:**
+  /// - [dataStream]: Source stream providing data chunks as List<int>
+  /// - [url]: Target upload endpoint URL
+  /// - [contentLength]: Total bytes to be uploaded (required for progress calculation)
+  /// - [onProgress]: Optional callback for upload progress updates
+  /// - [headers]: Additional HTTP headers to include
+  ///
+  /// **Returns:** HTTP response from the server
+  ///
+  /// **Important:** The [contentLength] must be accurate for proper progress tracking.
+  ///
+  /// **Note:** For simple file or byte array uploads, use [uploadFile] or [uploadBytes] instead.
   Future<http.Response> uploadStream(
     Stream<List<int>> dataStream,
     String url,
@@ -194,20 +209,30 @@ extension GioTransferMethods on Gio {
 
   // === Download Methods ===
 
-  /// Download a file with progress tracking
+  /// Download a file directly to filesystem with progress tracking and resume support
   ///
-  /// Example:
+  /// This method downloads content from a URL and saves it directly to a local file,
+  /// providing real-time progress updates and optional resume capability for interrupted
+  /// downloads. It's the most convenient method for simple file downloads.
+  ///
+  /// **Parameters:**
+  /// - [url]: Source URL to download from
+  /// - [savePath]: Local filesystem path where file will be saved
+  /// - [onProgress]: Optional callback for download progress updates
+  /// - [headers]: Additional HTTP headers (e.g., authentication, user-agent)
+  /// - [resumeFrom]: Byte offset to resume download from (for partial downloads)
+  ///
+  /// **Returns:** File object pointing to the downloaded file
+  ///
+  /// **Resume Usage:**
+  /// To resume a partial download, pass the size of existing partial file:
   /// ```dart
-  /// final gio = Gio();
-  /// final file = await gio.downloadFile(
-  ///   'https://example.com/large-file.zip',
-  ///   '/downloads/file.zip',
-  ///   onProgress: (progress) {
-  ///     print('Download: ${progress.percentage! * 100}%');
-  ///     print('Speed: ${progress.speed! / 1024} KB/s');
-  ///   },
-  /// );
+  /// final partialFile = File('/downloads/movie.mp4');
+  /// final resumeFrom = await partialFile.exists() ? await partialFile.length() : null;
+  /// await gio.downloadFile(url, '/downloads/movie.mp4', resumeFrom: resumeFrom);
   /// ```
+  ///
+  /// **Note:** For in-memory downloads or custom processing, use [downloadBytes] or [downloadWithChunkCallback].
   Future<File> downloadFile(
     String url,
     String savePath, {
@@ -233,23 +258,32 @@ extension GioTransferMethods on Gio {
     }
   }
 
-  /// Download to an IOSink with progress tracking
+  /// Download content to any IOSink destination with progress tracking
   ///
-  /// Example:
-  /// ```dart
-  /// final gio = Gio();
-  /// final file = File('/downloads/backup.tar.gz');
-  /// final sink = file.openWrite();
-  /// try {
-  ///   await gio.downloadToSink(
-  ///     'https://backups.example.com/latest.tar.gz',
-  ///     sink,
-  ///     onProgress: (progress) => print('Progress: ${progress.percentage}'),
-  ///   );
-  /// } finally {
-  ///   await sink.close();
-  /// }
-  /// ```
+  /// This method provides maximum flexibility for download destinations by accepting
+  /// any IOSink implementation. It's ideal for custom processing pipelines, network
+  /// forwarding, or when you need fine-grained control over the download destination.
+  ///
+  /// **Flexibility:**
+  /// - **File Output**: Use File.openWrite() for filesystem storage
+  /// - **Network Forward**: Stream to another HTTP connection
+  /// - **Compression**: Pipe through GZip or other compression sinks
+  /// - **Transformation**: Apply real-time data processing
+  /// - **Multiple Outputs**: Use BroadcastSink for fan-out scenarios
+  ///
+  /// **Parameters:**
+  /// - [url]: Source URL to download from
+  /// - [sink]: IOSink destination for downloaded data
+  /// - [onProgress]: Optional callback for download progress updates
+  /// - [headers]: Additional HTTP headers for the request
+  /// - [resumeFrom]: Byte offset for partial download resume
+  ///
+  /// **Important:**
+  /// - Caller must manage sink lifecycle (open/close)
+  /// - Sink errors are not automatically handled
+  /// - For resume functionality, ensure sink is positioned correctly
+  ///
+  /// **Note:** For simple file downloads, [downloadFile] provides automatic file management.
   Future<void> downloadToSink(
     String url,
     IOSink sink, {
@@ -288,17 +322,27 @@ extension GioTransferMethods on Gio {
     );
   }
 
-  /// Download to memory as bytes with progress tracking
+  /// Download content into memory as byte array with progress tracking
   ///
-  /// Example:
-  /// ```dart
-  /// final gio = Gio();
-  /// final imageData = await gio.downloadBytes(
-  ///   'https://example.com/image.jpg',
-  ///   maxSize: 10 * 1024 * 1024, // 10MB limit
-  ///   onProgress: (progress) => updateProgressBar(progress),
-  /// );
-  /// ```
+  /// This method downloads content and returns it as a Uint8List in memory. It's
+  /// perfect for small to medium-sized files that need to be processed immediately
+  /// or when working with APIs that expect byte data.
+  ///
+  /// **Parameters:**
+  /// - [url]: Source URL to download from
+  /// - [onProgress]: Optional callback for download progress updates
+  /// - [headers]: Additional HTTP headers for the request
+  /// - [maxSize]: Maximum allowed download size in bytes (safety limit)
+  ///
+  /// **Returns:** Complete file content as Uint8List
+  ///
+  /// **For Large Files:**
+  /// Consider using [downloadFile] for direct disk storage or
+  /// [downloadWithChunkCallback] for streaming processing to avoid high memory usage.
+  ///
+  /// **Safety:**
+  /// The [maxSize] parameter helps prevent accidental large downloads that could
+  /// cause out-of-memory errors.
   Future<Uint8List> downloadBytes(
     String url, {
     ProgressCallback? onProgress,
@@ -338,20 +382,27 @@ extension GioTransferMethods on Gio {
     return result;
   }
 
-  /// Download with chunk-by-chunk processing
+  /// Download with real-time chunk processing callback
   ///
-  /// Example:
-  /// ```dart
-  /// final gio = Gio();
-  /// await gio.downloadWithChunkCallback(
-  ///   'https://example.com/video.mp4',
-  ///   onChunk: (chunk) {
-  ///     // Process chunk immediately (e.g., decode, transform, save)
-  ///     videoProcessor.processChunk(chunk);
-  ///   },
-  ///   onProgress: (progress) => updateVideoDownloadUI(progress),
-  /// );
-  /// ```
+  /// This method enables processing of downloaded data as it arrives, without
+  /// accumulating it in memory. Each chunk is immediately passed to the callback
+  /// function, making it ideal for streaming scenarios, real-time processing,
+  /// or when working with very large files.
+  ///
+  /// **Parameters:**
+  /// - [url]: Source URL to download from
+  /// - [onChunk]: Required callback function receiving each data chunk
+  /// - [onProgress]: Optional callback for download progress updates
+  /// - [headers]: Additional HTTP headers for the request
+  ///
+  /// **Memory Characteristics:**
+  /// - Constant memory usage regardless of file size
+  /// - Immediate data availability for processing
+  /// - No accumulation or final memory allocation
+  /// - Minimal per-chunk memory overhead for type conversion
+  /// - Optimal for streaming scenarios
+  ///
+  /// **Note:** For simple downloads, use [downloadFile] or [downloadBytes] instead.
   Future<void> downloadWithChunkCallback(
     String url, {
     required DataChunkCallback onChunk,
@@ -441,7 +492,9 @@ extension GioTransferMethods on Gio {
 
     while (offset < data.length) {
       final end = (offset + chunkSize).clamp(0, data.length);
-      yield data.sublist(offset, end);
+      // Use buffer.asUint8List() to create a view without copying
+      yield Uint8List.view(
+          data.buffer, data.offsetInBytes + offset, end - offset);
       offset = end;
 
       // Allow other operations to run
@@ -564,7 +617,9 @@ class _ListSink implements _DataSink {
 
   @override
   void add(List<int> chunk) {
-    _chunks.add(List.from(chunk)); // Copy to avoid reference issues
+    // Store original chunk directly for memory efficiency
+    // The chunks will be processed later in downloadBytes
+    _chunks.add(chunk);
   }
 }
 
@@ -576,7 +631,12 @@ class _CallbackSink implements _DataSink {
 
   @override
   void add(List<int> chunk) {
-    _callback(Uint8List.fromList(chunk));
+    // Pass chunk directly if it's already a Uint8List, otherwise convert
+    if (chunk is Uint8List) {
+      _callback(chunk);
+    } else {
+      _callback(Uint8List.fromList(chunk));
+    }
   }
 }
 

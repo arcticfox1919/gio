@@ -1,17 +1,16 @@
 import 'dart:io' as io;
 import 'dart:async';
-
 import 'package:http/io_client.dart' as http_io;
 import 'package:http/http.dart' as http;
 import '../gio_config.dart';
-import '../http_delegator.dart';
+import 'http_delegator.dart';
 import '../io/io_context.dart';
 
 HttpDelegator createPkgHttpDelegatorImpl([GioConfig? config]) =>
     PkgHttpIODelegator(config: config);
 
 class PkgHttpIODelegator implements HttpDelegator {
-  http.Client? _client;
+  late http.Client _client;
 
   PkgHttpIODelegator({GioConfig? config}) {
     io.HttpClient inner;
@@ -29,12 +28,11 @@ class PkgHttpIODelegator implements HttpDelegator {
 
   @override
   void close() {
-    _client?.close();
-    _client = null;
+    _client.close();
   }
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    return _client!.send(request);
+    return _client.send(request);
   }
 }

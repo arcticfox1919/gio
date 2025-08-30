@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:gio/gio.dart';
 import 'package:gio/src/gio_config.dart';
-import 'package:gio/src/http_delegator.dart';
+import 'package:gio/src/pkg_http/http_delegator.dart';
 import 'package:gio/src/interceptor/call_server_interceptor.dart';
 
 import 'package:meta/meta.dart';
@@ -54,36 +54,84 @@ class Gio implements Client {
     _option = option;
   }
 
-  Gio({String? baseUrl, GioContext? context}) {
+  /// Creates a Gio instance using global configuration or defaults
+  ///
+  /// This constructor uses the global [_option] configuration, with optional
+  /// overrides for [baseUrl] and [context].
+  ///
+  /// Example:
+  /// ```dart
+  /// // Use global configuration
+  /// final gio = Gio();
+  ///
+  /// // Override base URL
+  /// final customGio = Gio(baseUrl: 'https://api.custom.com');
+  /// ```
+  Gio({String? baseUrl, GioContext? context})
+      : this.withOption(_buildOption(baseUrl, context));
+
+  static GioOption _buildOption(String? baseUrl, GioContext? context) {
     _option ??= GioOption();
-    basePath = baseUrl ?? _option!.basePath;
-    final cfg =
-        GioConfig(proxy: _option?.proxy, context: context ?? _option?.context);
-    if (_option!.delegatorFactory != null) {
-      _delegator = _option!.delegatorFactory!(cfg);
+
+    // If no overrides, return the global option as-is
+    if (baseUrl == null && context == null) {
+      return _option!;
+    }
+
+    // Create a copy with overrides (copyWith handles null values correctly)
+    return _option!.copyWith(
+      basePath: baseUrl,
+      context: context,
+    );
+  }
+
+  /// Creates a Gio instance with custom options, independent of global configuration
+  ///
+  /// This constructor allows you to create an isolated Gio client with its own
+  /// configuration without affecting or being affected by the global [_option].
+  ///
+  /// Example:
+  /// ```dart
+  /// final customOption = GioOption(
+  ///   basePath: 'https://api.custom.com',
+  ///   enableLog: false,
+  ///   globalInterceptors: [authInterceptor],
+  /// );
+  ///
+  /// final customGio = Gio.withOption(customOption);
+  /// ```
+  Gio.withOption(GioOption option) {
+    basePath = option.basePath;
+    final cfg = GioConfig(
+      proxy: option.proxy,
+      context: option.context,
+    );
+
+    if (option.delegatorFactory != null) {
+      _delegator = option.delegatorFactory!(cfg);
     } else {
       _delegator = createDelegator(cfg);
     }
 
     final callServer =
-        _option!.mockInterceptor ?? CallServerInterceptor(_delegator);
-    final logger = _option!.logInterceptor ??
-        (_option!.enableLog ? GioLogInterceptor() : null);
+        option.mockInterceptor ?? CallServerInterceptor(_delegator);
+    final logger = option.logInterceptor ??
+        (option.enableLog ? GioLogInterceptor() : null);
 
     if (logger != null) {
       _gioInterceptors = [
         logger.call,
-        (_option!.connectInterceptor ?? DefaultConnectInterceptor()).call,
+        (option.connectInterceptor ?? DefaultConnectInterceptor()).call,
         callServer.call
       ];
     } else {
       _gioInterceptors = [
-        (_option!.connectInterceptor ?? DefaultConnectInterceptor()).call,
+        (option.connectInterceptor ?? DefaultConnectInterceptor()).call,
         callServer.call
       ];
     }
 
-    for (var e in _option!.globalInterceptors) {
+    for (var e in option.globalInterceptors) {
       _globalInterceptors.add(e);
     }
   }

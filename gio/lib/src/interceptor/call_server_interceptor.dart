@@ -1,5 +1,5 @@
 import 'package:http/http.dart' as http;
-import '../http_delegator.dart';
+import '../pkg_http/http_delegator.dart';
 import 'interceptor.dart';
 
 class CallServerInterceptor implements CallServer {

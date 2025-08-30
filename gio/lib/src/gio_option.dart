@@ -1,6 +1,6 @@
 import 'package:gio/src/gio_context.dart';
 import 'package:gio/src/interceptor/connect_interceptor.dart';
-import 'package:gio/src/http_delegator.dart';
+import 'package:gio/src/pkg_http/http_delegator.dart';
 import 'package:gio/src/gio_config.dart';
 
 import 'interceptor/interceptor.dart';

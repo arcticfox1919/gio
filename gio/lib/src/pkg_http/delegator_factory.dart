@@ -1,4 +1,4 @@
-import '../http_delegator.dart';
+import 'http_delegator.dart';
 import '../gio_config.dart';
 
 // Conditional factory that creates a package:http-based delegator per platform.

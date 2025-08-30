@@ -48,7 +48,7 @@ class GioLogInterceptor {
 
   GioLogInterceptor({
     this.maxLogBodyBytes = 16 * 1024, // 16KB
-    this.downloadSizeThreshold = 1024 * 1024, // 1MB
+    this.downloadSizeThreshold = 512 * 1024, // 512KB
     this.useLogging = false,
     this.loggerName = 'gio',
     this.logLevel = Level.INFO,
