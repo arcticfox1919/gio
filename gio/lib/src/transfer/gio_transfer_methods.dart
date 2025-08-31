@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-import '../gio_client.dart';
+import '../gio_interface.dart';
 
 /// Progress information for upload/download operations
 class TransferProgress {

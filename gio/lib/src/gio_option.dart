@@ -68,6 +68,13 @@ class GioOption {
   /// (e.g., package:http, http/3, native IO/XHR).
   final HttpDelegator Function(GioConfig config)? delegatorFactory;
 
+  /// Global setting for parallel JSON encoding of request bodies.
+  ///
+  /// When true, JSON encoding of request bodies (when using `jsonBody` parameter)
+  /// will be performed in background isolates by default to prevent blocking the UI thread
+  /// for large JSON data. Individual requests can override this setting using the `parallelJson` parameter.
+  final bool parallelJson;
+
   GioOption({
     this.basePath = '',
     this.enableLog = false,
@@ -79,6 +86,7 @@ class GioOption {
     this.mockInterceptor,
     this.globalInterceptors = const [],
     this.delegatorFactory,
+    this.parallelJson = false,
   });
 
   /// Returns a new [GioOption] with selected fields replaced.
@@ -93,6 +101,7 @@ class GioOption {
     GioConnectInterceptor? connectInterceptor,
     GioMockInterceptor? mockInterceptor,
     HttpDelegator Function(GioConfig config)? delegatorFactory,
+    bool? parallelJson,
   }) {
     return GioOption(
       basePath: basePath ?? this.basePath,
@@ -105,6 +114,7 @@ class GioOption {
       connectInterceptor: connectInterceptor ?? this.connectInterceptor,
       mockInterceptor: mockInterceptor ?? this.mockInterceptor,
       delegatorFactory: delegatorFactory ?? this.delegatorFactory,
+      parallelJson: parallelJson ?? this.parallelJson,
     );
   }
 }

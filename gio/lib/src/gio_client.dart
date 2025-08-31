@@ -4,9 +4,9 @@ import 'package:gio/gio.dart';
 import 'package:gio/src/gio_config.dart';
 import 'package:gio/src/pkg_http/http_delegator.dart';
 import 'package:gio/src/interceptor/call_server_interceptor.dart';
+import 'package:gio/src/json/gio_json_codec.dart';
 
 import 'package:meta/meta.dart';
-import 'client.dart';
 import 'interceptor/real_interceptor_chain.dart';
 
 Map<String, List<Interceptor>>? _groupTable;
@@ -41,7 +41,7 @@ class GroupInterceptor {
   }
 }
 
-class Gio implements Client {
+class GioClient implements Gio {
   static GioOption? _option;
 
   final _globalInterceptors = <Interceptor>[];
@@ -49,25 +49,13 @@ class Gio implements Client {
   late final HttpDelegator _delegator;
   late final List<Interceptor> _gioInterceptors;
   late final String basePath;
+  late final GioOption _currentOption;
 
   static set option(GioOption option) {
     _option = option;
   }
 
-  /// Creates a Gio instance using global configuration or defaults
-  ///
-  /// This constructor uses the global [_option] configuration, with optional
-  /// overrides for [baseUrl] and [context].
-  ///
-  /// Example:
-  /// ```dart
-  /// // Use global configuration
-  /// final gio = Gio();
-  ///
-  /// // Override base URL
-  /// final customGio = Gio(baseUrl: 'https://api.custom.com');
-  /// ```
-  Gio({String? baseUrl, GioContext? context})
+  GioClient({String? baseUrl, GioContext? context})
       : this.withOption(_buildOption(baseUrl, context));
 
   static GioOption _buildOption(String? baseUrl, GioContext? context) {
@@ -85,22 +73,8 @@ class Gio implements Client {
     );
   }
 
-  /// Creates a Gio instance with custom options, independent of global configuration
-  ///
-  /// This constructor allows you to create an isolated Gio client with its own
-  /// configuration without affecting or being affected by the global [_option].
-  ///
-  /// Example:
-  /// ```dart
-  /// final customOption = GioOption(
-  ///   basePath: 'https://api.custom.com',
-  ///   enableLog: false,
-  ///   globalInterceptors: [authInterceptor],
-  /// );
-  ///
-  /// final customGio = Gio.withOption(customOption);
-  /// ```
-  Gio.withOption(GioOption option) {
+  GioClient.withOption(GioOption option) {
+    _currentOption = option;
     basePath = option.basePath;
     final cfg = GioConfig(
       proxy: option.proxy,
@@ -173,57 +147,101 @@ class Gio implements Client {
   Future<Response> post(String path,
           {Map<String, String>? headers,
           Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
           Encoding? encoding,
           Map<String, dynamic>? queryParameters}) =>
       postUri(Uri.parse(path).replace(queryParameters: queryParameters),
-          headers: headers, body: body, encoding: encoding);
+          headers: headers,
+          body: body,
+          jsonBody: jsonBody,
+          parallelJson: parallelJson,
+          encoding: encoding);
 
   @override
   Future<Response> postUri(Uri url,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('POST', _mergeUri(url), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
+          Encoding? encoding}) =>
+      _sendUnstreamed('POST', _mergeUri(url), headers, body, encoding, jsonBody,
+          parallelJson);
 
   @override
   Future<Response> put(String path,
           {Map<String, String>? headers,
           Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
           Encoding? encoding,
           Map<String, dynamic>? queryParameters}) =>
       putUri(Uri.parse(path).replace(queryParameters: queryParameters),
-          headers: headers, body: body, encoding: encoding);
+          headers: headers,
+          body: body,
+          jsonBody: jsonBody,
+          parallelJson: parallelJson,
+          encoding: encoding);
 
   @override
   Future<Response> putUri(Uri url,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('PUT', _mergeUri(url), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
+          Encoding? encoding}) =>
+      _sendUnstreamed('PUT', _mergeUri(url), headers, body, encoding, jsonBody,
+          parallelJson);
 
   @override
   Future<Response> patch(String path,
           {Map<String, String>? headers,
           Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
           Encoding? encoding,
           Map<String, dynamic>? queryParameters}) =>
       patchUri(Uri.parse(path).replace(queryParameters: queryParameters),
-          headers: headers, body: body, encoding: encoding);
+          headers: headers,
+          body: body,
+          jsonBody: jsonBody,
+          parallelJson: parallelJson,
+          encoding: encoding);
 
   @override
   Future<Response> patchUri(Uri url,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('PATCH', _mergeUri(url), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
+          Encoding? encoding}) =>
+      _sendUnstreamed('PATCH', _mergeUri(url), headers, body, encoding,
+          jsonBody, parallelJson);
 
   @override
   Future<Response> delete(String path,
           {Map<String, String>? headers,
           Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
           Encoding? encoding,
           Map<String, dynamic>? queryParameters}) =>
       deleteUri(Uri.parse(path).replace(queryParameters: queryParameters),
-          headers: headers, body: body, encoding: encoding);
+          headers: headers,
+          body: body,
+          jsonBody: jsonBody,
+          parallelJson: parallelJson,
+          encoding: encoding);
 
   @override
   Future<Response> deleteUri(Uri url,
-          {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
-      _sendUnstreamed('DELETE', _mergeUri(url), headers, body, encoding);
+          {Map<String, String>? headers,
+          Object? body,
+          Object? jsonBody,
+          bool? parallelJson,
+          Encoding? encoding}) =>
+      _sendUnstreamed('DELETE', _mergeUri(url), headers, body, encoding,
+          jsonBody, parallelJson);
 
   @override
   Future<String> read(String path,
@@ -261,6 +279,7 @@ class Gio implements Client {
   }
 
   /// Sends an HTTP request and asynchronously returns the response.
+  @override
   Future<StreamedResponse> send(BaseRequest request) {
     return _handleInterceptors(request);
   }
@@ -268,12 +287,30 @@ class Gio implements Client {
   /// Sends a non-streaming [Request] and returns a non-streaming [Response].
   Future<Response> _sendUnstreamed(
       String method, Uri url, Map<String, String>? headers,
-      [Object? body, Encoding? encoding]) async {
+      [Object? body,
+      Encoding? encoding,
+      Object? jsonBody,
+      bool? parallelJson]) async {
+    // Cannot specify both body and jsonBody parameters
+    if (body != null && jsonBody != null) {
+      throw ArgumentError('Cannot specify both body and jsonBody parameters');
+    }
+
     var request = Request(method, url);
 
     if (headers != null) request.headers.addAll(headers);
     if (encoding != null) request.encoding = encoding;
-    if (body != null) {
+
+    if (jsonBody != null) {
+      request.headers['Content-Type'] = 'application/json';
+      final shouldUseParallel = parallelJson ?? _currentOption.parallelJson;
+
+      // Use JSON encoder to encode data
+      final jsonString =
+          await GioJsonCodec().encode(jsonBody, parallel: shouldUseParallel);
+      request.body = jsonString;
+    } else if (body != null) {
+      // Handle regular body
       if (body is String) {
         request.body = body;
       } else if (body is List) {
@@ -327,7 +364,7 @@ class Gio implements Client {
   }
 }
 
-class GioGroup extends Gio {
+class GioGroup extends GioClient {
   final String name;
 
   GioGroup(this.name) {
