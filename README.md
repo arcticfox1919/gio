@@ -7,6 +7,8 @@ Gio extends the standard `http` package with advanced features like interceptors
 ## Features
 
 - **Built on `package:http`** - Reliable foundation with familiar APIs
+- **Upload/Download Support** - File transfer with progress tracking
+- **Background JSON Encoding** - Prevent UI blocking with large JSON request bodies
 - **Interceptor Chain** - Transform requests/responses with ease
 - **Smart Logging** - Stream-safe logging with configurable output
 - **API Mocking** - Build UIs without backend dependencies
@@ -46,12 +48,118 @@ void main() async {
     body: {"username": "john", "password": "secret"}
   );
 
-  // POST with JSON data
+  // POST with JSON data(Original)
   response = await gio.post(
     "https://api.example.com/users",
     headers: {"content-type": "application/json"},
     body: jsonEncode({"name": "John Doe", "age": 30})
   );
+
+  // POST with JSON data(Easy to use)
+  response = await gio.post(
+    "https://api.example.com/users",
+    jsonBody: {"name": "John Doe", "age": 30}
+  );
+}
+```
+
+### File Upload & Download
+
+Gio provides comprehensive file transfer capabilities with progress tracking:
+
+```dart
+import 'dart:io';
+import 'package:gio/gio.dart';
+
+void main() async {
+  final client = Gio();
+  
+  try {
+    // Upload a file with progress tracking
+    final uploadFile = File('path/to/upload.jpg');
+    final uploadResponse = await client.uploadFile(
+      'https://api.example.com/upload',
+      file: uploadFile,
+      fieldName: 'image',
+      onProgress: (progress) {
+        print('Upload: ${progress.current}/${progress.total} bytes '
+              '(${(progress.percentage! * 100).toStringAsFixed(1)}%)');
+      },
+    );
+    print('Upload completed: ${uploadResponse.statusCode}');
+
+    // Download a file with progress tracking
+    final downloadedFile = await client.downloadFile(
+      'https://api.example.com/files/document.pdf',
+      'downloads/document.pdf',
+      onProgress: (progress) {
+        print('Download: ${progress.current}/${progress.total} bytes '
+              '(${(progress.percentage! * 100).toStringAsFixed(1)}%)');
+      },
+    );
+    print('Downloaded to: ${downloadedFile.path}');
+
+    // Download directly to memory
+    final bytes = await client.downloadBytes(
+      'https://api.example.com/data.json',
+      maxSize: 10 * 1024 * 1024, // 10MB limit
+    );
+    print('Downloaded ${bytes.length} bytes');
+
+    // Process download chunks in real-time
+    await client.downloadWithChunkCallback(
+      'https://api.example.com/stream',
+      onChunk: (chunk) {
+        // Process each chunk as it arrives
+        print('Received ${chunk.length} bytes');
+      },
+    );
+
+  } finally {
+    client.close();
+  }
+}
+```
+
+### Background JSON Processing
+
+For large JSON payloads, Gio can process JSON encoding in background isolates to prevent UI blocking:
+
+```dart
+import 'package:gio/gio.dart';
+
+void main() async {
+  // Enable background JSON encoding for request bodies
+  Gio.option = GioOption(
+    basePath: 'https://api.example.com',
+    parallelJson: true,
+  );
+
+  // Large JSON data
+  final userData = {
+    'name': 'John Doe',
+    'profile': {
+      'preferences': List.generate(1000, (i) => 'item_$i'),
+    }
+  };
+
+  try {
+    // JSON encoding happens in background (won't block UI)
+    final response = await gio.post(
+      '/users',
+      jsonBody: userData,
+    );
+
+    // Parse response to User model in background isolate
+    final user = await response.toJsonAs<User>(
+      (json) => User.fromJson(json),
+    );
+    
+    print('User created: ${user.name} with ${user.preferences.length} preferences');
+    
+  } catch (e) {
+    print('Error: $e');
+  }
 }
 ```
 
@@ -87,6 +195,7 @@ void main() async {
     enableLog: false,
     headers: {'Authorization': 'Bearer token123'},
     connectTimeout: Duration(seconds: 10),
+    parallelJson: true, // Enable background JSON encoding for request bodies
   ));
 
   // Create another client with different configuration
@@ -133,6 +242,7 @@ void main() async {
     basePath: 'https://api.example.com',
     enableLog: true,
     headers: {'User-Agent': 'MyApp/1.0'},
+    parallelJson: true, // Enable background JSON encoding for request bodies
   );
 
   // Requests now use the base path
@@ -173,6 +283,163 @@ void main() async {
     print(resp.body);
   }finally{
     gio.close();
+  }
+}
+```
+
+### Background JSON Processing Configuration
+
+Configure JSON processing behavior to prevent UI blocking with large payloads:
+
+```dart
+import 'package:gio/gio.dart';
+
+void main() async {
+  // Global configuration for JSON request body encoding
+  Gio.option = GioOption(
+    basePath: 'https://api.example.com',
+    parallelJson: true, // Enable background encoding for request bodies by default
+  );
+
+  // Configure background isolate idle timeout (default: 60 seconds)
+  // This controls how long the background isolate stays alive when idle
+  GioJsonCodec().idleTimeout = Duration(seconds: 30);
+
+  try {
+    // This request will use background JSON encoding for request body
+    final response1 = await gio.post('/data', jsonBody: largeJsonData);
+    
+    // Override global setting for specific request
+    final response2 = await gio.post(
+      '/quick-data', 
+      jsonBody: smallJsonData,
+      parallelJson: false, // Process in main thread for small data
+    );
+
+    // Parse response with custom converter in background
+    final result = await response1.toJsonAs<MyDataModel>(
+      (json) => MyDataModel.fromJson(json),
+    );
+    
+  } catch (e) {
+    print('Error: $e');
+  }
+}
+```
+
+**Background JSON Processing Benefits:**
+- **UI Responsiveness**: Large JSON request body encoding doesn't block the UI thread
+- **Automatic Management**: Background isolates are created and cleaned up automatically
+- **Configurable Idle Timeout**: Set how long background isolates stay alive when not in use
+- **Per-Request Control**: Override global settings for specific requests
+
+## File Transfer
+
+### Upload Methods
+
+Gio provides multiple upload methods for different use cases:
+
+```dart
+import 'dart:io';
+import 'package:gio/gio.dart';
+
+void main() async {
+  final client = Gio();
+  
+  try {
+    // 1. Upload single file with multipart/form-data
+    final file = File('image.jpg');
+    final response = await client.uploadFile(
+      'https://api.example.com/upload',
+      file: file,
+      fieldName: 'image',
+      additionalFields: {
+        'userId': '123',
+        'category': 'profile',
+      },
+      onProgress: (progress) {
+        print('Upload progress: ${progress.percentage! * 100}%');
+      },
+    );
+
+    // 2. Upload raw data as request body
+    final data = await file.readAsBytes();
+    final rawResponse = await client.uploadData(
+      'https://api.example.com/upload-raw',
+      data: data,
+      contentType: 'image/jpeg',
+      onProgress: (progress) {
+        print('Upload: ${progress.current}/${progress.total} bytes');
+      },
+    );
+
+    // 3. Upload from stream (for large files)
+    final stream = file.openRead();
+    final streamResponse = await client.uploadFromStream(
+      'https://api.example.com/upload-stream',
+      stream: stream,
+      contentLength: await file.length(),
+      contentType: 'application/octet-stream',
+    );
+
+  } finally {
+    client.close();
+  }
+}
+```
+
+### Download Methods
+
+Multiple download options with progress tracking:
+
+```dart
+void main() async {
+  final client = Gio();
+  
+  try {
+    // 1. Download to file
+    final downloadedFile = await client.downloadFile(
+      'https://api.example.com/large-file.zip',
+      'downloads/file.zip',
+      onProgress: (progress) {
+        print('Downloaded: ${progress.percentage! * 100}%');
+      },
+    );
+
+    // 2. Download to memory (with size limit)
+    final bytes = await client.downloadBytes(
+      'https://api.example.com/data.json',
+      maxSize: 5 * 1024 * 1024, // 5MB limit
+    );
+
+    // 3. Stream processing during download
+    await client.downloadWithChunkCallback(
+      'https://api.example.com/streaming-data',
+      onChunk: (chunk) {
+        // Process each chunk immediately
+        processDataChunk(chunk);
+      },
+      onProgress: (progress) {
+        updateUI(progress);
+      },
+    );
+
+    // 4. Download to custom sink
+    final customFile = File('custom-location.dat');
+    final sink = customFile.openWrite();
+    
+    await client.downloadToSink(
+      'https://api.example.com/data',
+      sink,
+      onProgress: (progress) {
+        print('Progress: ${progress.current} bytes');
+      },
+    );
+    
+    await sink.close();
+
+  } finally {
+    client.close();
   }
 }
 ```
