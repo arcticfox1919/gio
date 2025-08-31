@@ -18,18 +18,10 @@ class TransferProgress {
   /// Whether the transfer is completed
   final bool isCompleted;
 
-  /// Transfer speed in bytes per second (calculated over recent time window)
-  final double? speed;
-
-  /// Estimated remaining time in seconds (null if total is unknown)
-  final Duration? estimatedTimeRemaining;
-
   const TransferProgress({
     required this.current,
     this.total,
     this.isCompleted = false,
-    this.speed,
-    this.estimatedTimeRemaining,
   });
 
   @override
@@ -37,9 +29,7 @@ class TransferProgress {
     final percent = percentage != null
         ? '${(percentage! * 100).toStringAsFixed(1)}%'
         : 'unknown';
-    final speedStr =
-        speed != null ? '${(speed! / 1024).toStringAsFixed(1)} KB/s' : '';
-    return 'TransferProgress(current: $current, total: $total, progress: $percent, speed: $speedStr)';
+    return 'TransferProgress(current: $current, total: $total, progress: $percent)';
   }
 }
 
@@ -436,51 +426,30 @@ extension GioTransferMethods on Gio {
     if (onProgress == null) return originalStream;
 
     int transferredBytes = 0;
-    DateTime? startTime;
-    DateTime? lastProgressTime;
-    int lastProgressBytes = 0;
-    const speedCalculationWindow = Duration(seconds: 1);
+    double lastReportedPercentage = 0.0;
 
     return originalStream.map<List<int>>((chunk) {
-      startTime ??= DateTime.now();
       transferredBytes += chunk.length;
 
-      final now = DateTime.now();
-      double? speed;
-      Duration? estimatedTimeRemaining;
+      // Only report progress if it changed meaningfully
+      final currentPercentage = transferredBytes / totalSize;
+      final isCompleted = transferredBytes >= totalSize;
 
-      final currentProgressTime = lastProgressTime;
-      if (currentProgressTime != null) {
-        final timeDiff = now.difference(currentProgressTime);
-        if (timeDiff >= speedCalculationWindow) {
-          final bytesDiff = transferredBytes - lastProgressBytes;
-          speed =
-              bytesDiff / timeDiff.inMilliseconds * 1000; // bytes per second
+      // Report progress if:
+      // 1. Percentage changed by at least 1%
+      // 2. Or transfer is completed
+      if (isCompleted ||
+          (currentPercentage - lastReportedPercentage).abs() >= 0.01) {
+        final progress = TransferProgress(
+          current: transferredBytes,
+          total: totalSize,
+          isCompleted: isCompleted,
+        );
 
-          if (speed > 0) {
-            final remainingBytes = totalSize - transferredBytes;
-            estimatedTimeRemaining = Duration(
-              seconds: (remainingBytes / speed).round(),
-            );
-          }
-
-          lastProgressTime = now;
-          lastProgressBytes = transferredBytes;
-        }
-      } else {
-        lastProgressTime = now;
-        lastProgressBytes = transferredBytes;
+        onProgress(progress);
+        lastReportedPercentage = currentPercentage;
       }
 
-      final progress = TransferProgress(
-        current: transferredBytes,
-        total: totalSize,
-        isCompleted: transferredBytes >= totalSize,
-        speed: speed,
-        estimatedTimeRemaining: estimatedTimeRemaining,
-      );
-
-      onProgress(progress);
       return chunk;
     });
   }
@@ -511,61 +480,45 @@ extension GioTransferMethods on Gio {
     int initialProgress = 0,
   }) async {
     int downloadedBytes = initialProgress;
-    DateTime? startTime;
-    DateTime? lastProgressTime;
-    int lastProgressBytes = initialProgress;
-    const speedCalculationWindow = Duration(seconds: 1);
+    int lastReportedBytes = initialProgress;
+    double lastReportedPercentage = 0.0;
 
     await for (final chunk in stream) {
-      startTime ??= DateTime.now();
       downloadedBytes += chunk.length;
 
       // Write chunk to sink
       sink.add(chunk);
 
-      // Calculate progress
+      // Calculate progress - only report if progress changed meaningfully
       if (onProgress != null) {
-        final now = DateTime.now();
-        double? speed;
-        Duration? estimatedTimeRemaining;
+        final currentPercentage =
+            totalSize != null ? downloadedBytes / totalSize : 0.0;
+        final isCompleted = totalSize != null && downloadedBytes >= totalSize;
 
-        final currentProgressTime = lastProgressTime;
-        if (currentProgressTime != null) {
-          final timeDiff = now.difference(currentProgressTime);
-          if (timeDiff >= speedCalculationWindow) {
-            final bytesDiff = downloadedBytes - lastProgressBytes;
-            speed =
-                bytesDiff / timeDiff.inMilliseconds * 1000; // bytes per second
+        // Report progress if:
+        // 1. Percentage changed by at least 1%
+        // 2. Or download is completed
+        // 3. Or bytes changed significantly (for cases without total size)
+        if (isCompleted ||
+            (currentPercentage - lastReportedPercentage).abs() >= 0.01 ||
+            (totalSize == null && downloadedBytes != lastReportedBytes)) {
+          final progress = TransferProgress(
+            current: downloadedBytes,
+            total: totalSize,
+            isCompleted: isCompleted,
+          );
 
-            if (speed > 0 && totalSize != null) {
-              final remainingBytes = totalSize - downloadedBytes;
-              estimatedTimeRemaining = Duration(
-                seconds: (remainingBytes / speed).round(),
-              );
-            }
-
-            lastProgressTime = now;
-            lastProgressBytes = downloadedBytes;
-          }
-        } else {
-          lastProgressTime = now;
-          lastProgressBytes = downloadedBytes;
+          onProgress(progress);
+          lastReportedBytes = downloadedBytes;
+          lastReportedPercentage = currentPercentage;
         }
-
-        final progress = TransferProgress(
-          current: downloadedBytes,
-          total: totalSize,
-          isCompleted: totalSize != null && downloadedBytes >= totalSize,
-          speed: speed,
-          estimatedTimeRemaining: estimatedTimeRemaining,
-        );
-
-        onProgress(progress);
       }
     }
 
-    // Ensure final progress callback
-    if (onProgress != null && totalSize != null) {
+    // Only send final progress if we haven't already reported completion
+    if (onProgress != null &&
+        totalSize != null &&
+        lastReportedBytes < totalSize) {
       onProgress(TransferProgress(
         current: downloadedBytes,
         total: totalSize,

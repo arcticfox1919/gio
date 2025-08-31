@@ -1,14 +1,12 @@
-
-
 import 'package:gio/gio.dart';
 
-
-void main() async{
+void main() async {
+  Gio.option = GioOption(enableLog: true);
   Gio gio = Gio();
-  try{
-    var resp = await gio.get("http://worldtimeapi.org/api/timezone/Asia/Shanghai");
+  try {
+    var resp = await gio.get("https://httpbin.org/get");
     print(resp.body);
-  }finally{
+  } finally {
     gio.close();
   }
 }
