@@ -1,13 +1,13 @@
 name: gio_mock
 description: For auxiliary gio library.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/arcticfox1919/gio
 
 environment:
   sdk: ^3.4.0
 
 dependencies:
-  gio: ^0.1.0
+  gio: ^0.2.0
 
 dev_dependencies:
   lints: ^5.1.1

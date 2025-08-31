@@ -1,3 +1,6 @@
+## 0.1.1
+- Upgrading dependency versions
+
 ## 0.1.0
 - Upgrade dart to the minimum supported version 3.4
 
