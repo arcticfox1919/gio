@@ -1,6 +1,6 @@
 name: gio
 description: A powerful http request library.
-version: 0.2.0
+version: 0.2.1
 homepage: https://github.com/arcticfox1919/gio
 
 topics:

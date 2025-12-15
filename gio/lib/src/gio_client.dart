@@ -4,7 +4,6 @@ import 'package:gio/gio.dart';
 import 'package:gio/src/gio_config.dart';
 import 'package:gio/src/pkg_http/http_delegator.dart';
 import 'package:gio/src/interceptor/call_server_interceptor.dart';
-import 'package:gio/src/json/gio_json_codec.dart';
 
 import 'package:meta/meta.dart';
 import 'interceptor/real_interceptor_chain.dart';
@@ -113,10 +112,12 @@ class GioClient implements Gio {
   @internal
   HttpDelegator createDelegator(GioConfig config) => HttpDelegator(config);
 
+  @override
   void addInterceptor(Interceptor interceptor) {
     _localInterceptors.add(interceptor);
   }
 
+  @override
   void removeInterceptor(Interceptor interceptor) {
     _localInterceptors.remove(interceptor);
   }

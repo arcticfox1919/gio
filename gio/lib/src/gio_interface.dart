@@ -6,6 +6,7 @@ import 'exception/exception.dart';
 import 'package:http/http.dart' show Response, BaseRequest, StreamedResponse;
 import 'gio_client.dart';
 import 'gio_option.dart';
+import 'interceptor/interceptor.dart';
 
 /// The interface for HTTP clients that take care of maintaining persistent
 /// connections across multiple requests to the same server.
@@ -252,6 +253,36 @@ abstract interface class Gio {
 
   /// Sends an HTTP request and asynchronously returns the response.
   Future<StreamedResponse> send(BaseRequest request);
+
+  /// Adds a local interceptor to this client instance.
+  ///
+  /// Local interceptors are specific to this [Gio] instance and are executed
+  /// before global interceptors in the interceptor chain.
+  ///
+  /// Interceptors can be used to:
+  /// - Add authentication headers
+  /// - Log requests and responses
+  /// - Implement retry logic
+  /// - Transform requests or responses
+  ///
+  /// Example:
+  /// ```dart
+  /// final gio = Gio();
+  /// gio.addInterceptor((chain) async {
+  ///   final request = chain.request;
+  ///   // Add custom header
+  ///   request.headers['X-Custom-Header'] = 'value';
+  ///   return chain.proceed(request);
+  /// });
+  /// ```
+  void addInterceptor(Interceptor interceptor);
+
+  /// Removes a previously added local interceptor from this client instance.
+  ///
+  /// The [interceptor] must be the same instance that was passed to
+  /// [addInterceptor].
+  ///
+  void removeInterceptor(Interceptor interceptor);
 
   /// Closes the client and cleans up any resources associated with it.
   ///

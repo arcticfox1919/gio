@@ -160,7 +160,7 @@ extension GioTransferMethods on Gio {
   /// a stream or needs to be generated/transformed on-the-fly during upload.
   ///
   /// **Parameters:**
-  /// - [dataStream]: Source stream providing data chunks as List<int>
+  /// - [dataStream]: Source stream providing data chunks as `List<int>`
   /// - [url]: Target upload endpoint URL
   /// - [contentLength]: Total bytes to be uploaded (required for progress calculation)
   /// - [onProgress]: Optional callback for upload progress updates

@@ -1,3 +1,9 @@
+## 0.2.1
+
+### Improvements
+- **Gio Interface Enhancement**: Added `addInterceptor()` and `removeInterceptor()` method declarations to the `Gio` interface with comprehensive documentation
+- **Code Quality**: Fixed various Dart code warnings
+
 ## 0.2.0
 
 ### New Features
