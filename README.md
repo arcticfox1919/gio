@@ -1,5 +1,10 @@
 # Gio
 
+[![Dart](https://img.shields.io/badge/dart-%230175C2.svg?style=flat&logo=dart&logoColor=white)](https://dart.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logo=flutter&logoColor=white)](https://flutter.dev)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+
 **A powerful HTTP client library for Dart, built on top of `package:http`.**
 
 Gio extends the standard `http` package with advanced features like interceptors, request/response logging, and seamless API mocking capabilities. Designed for modern Dart applications, Gio simplifies HTTP communication while providing enterprise-grade flexibility.

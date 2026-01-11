@@ -1,3 +1,9 @@
+## 0.2.2
+
+### Improvements
+- **Documentation**: Improved package metadata and description
+- **Dependencies**: Upgraded `http` package to ^1.6.0
+
 ## 0.2.1
 
 ### Improvements

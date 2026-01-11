@@ -1,10 +1,29 @@
 name: gio
-description: A powerful http request library.
-version: 0.2.1
+description: >-
+  A powerful and flexible HTTP client library for Dart and Flutter. 
+  Features include interceptors, request/response transformation, 
+  file upload/download, mock server support, and cross-platform compatibility.
+version: 0.2.2
 homepage: https://github.com/arcticfox1919/gio
+repository: https://github.com/arcticfox1919/gio
+issue_tracker: https://github.com/arcticfox1919/gio/issues
+documentation: https://github.com/arcticfox1919/gio#readme
 
 topics:
   - http
+  - http-client
+  - rest-api
+  - networking
+  - flutter
+
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
 
 environment:
   sdk: ^3.4.0
@@ -12,7 +31,7 @@ environment:
 dependencies:
   meta: ^1.16.0
   path: ^1.9.1
-  http: ^1.5.0
+  http: ^1.6.0
   logging: ^1.3.0
   http_parser: ^4.1.2
 
